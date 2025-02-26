@@ -1,85 +1,74 @@
-import React, { useState, useEffect } from 'react';
+// Conversation.tsx - Component for multi-turn chat interface
 
-interface ConversationTabProps {
+import React, { useState, useEffect, useRef } from 'react';
+import '../styles/Conversation.css';
+import { sendMessage } from '../utils/api';
+
+interface ConversationProps {
   token: string;
+  sessionId: string;
 }
 
-const ConversationTab: React.FC<ConversationTabProps> = ({ token }) => {
-  const [messages, setMessages] = useState<{ role: string; content: string }[]>([]);
+const Conversation: React.FC<ConversationProps> = ({ token, sessionId }) => {
+  const [messages, setMessages] = useState<{ role: string; content: string; timestamp: string }[]>([]);
   const [input, setInput] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const chatEndRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const fetchHistory = async () => {
-      try {
-        const response = await fetch('http://localhost:8000/history', {
-          headers: { 'Authorization': `Bearer ${token}` },
-        });
-        if (!response.ok) throw new Error('Failed to fetch history');
-        const data = await response.json();
-        setMessages(data.history);
-      } catch (error) {
-        console.error('Error fetching history:', error);
-      }
-    };
-    fetchHistory();
-  }, [token]);
-
-  const handleSendMessage = async () => {
+  const handleSend = async () => {
     if (!input.trim()) return;
     setIsLoading(true);
+    setError(null);
+    const userMessage = { role: 'user', content: input, timestamp: new Date().toISOString() };
+    setMessages((prev) => [...prev, userMessage]);
+    setInput('');
     try {
-      const response = await fetch('http://localhost:8000/converse', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({ message: input }),
-      });
-      if (!response.ok) throw new Error('Network response was not ok');
-      const data: { response: string } = await response.json();
-      setMessages((prev) => [
-        ...prev,
-        { role: 'user', content: input },
-        { role: 'assistant', content: data.response },
-      ]);
-      setInput('');
-    } catch (error) {
-      setMessages((prev) => [
-        ...prev,
-        { role: 'assistant', content: 'Error: Could not connect to the server.' },
-      ]);
+      const response = await sendMessage(token, sessionId, input);
+      setMessages((prev) => [...prev, {
+        role: 'assistant',
+        content: response.response,
+        timestamp: response.timestamp
+      }]);
+    } catch (err: any) {
+      setError(err.message || 'Failed to send message');
     } finally {
       setIsLoading(false);
     }
   };
 
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
   return (
-    <div className="conversation-tab">
+    <div className="conversation-container">
+      <h2>Conversation</h2>
       <div className="chat-window">
-        {messages.length === 0 ? (
-          <p>Start the conversation by typing a message.</p>
-        ) : (
-          messages.map((msg, index) => (
-            <p key={index} className={msg.role}>
-              <strong>{msg.role}:</strong> {msg.content}
-            </p>
-          ))
-        )}
+        {messages.map((msg, index) => (
+          <div key={index} className={`message ${msg.role}`}>
+            <span className="message-role">{msg.role}:</span>
+            <span className="message-content">{msg.content}</span>
+            <span className="message-timestamp">{new Date(msg.timestamp).toLocaleTimeString()}</span>
+          </div>
+        ))}
+        <div ref={chatEndRef} />
       </div>
-      {isLoading && <p>Loading...</p>}
-      <input
-        type="text"
-        value={input}
-        onChange={(e) => setInput(e.target.value)}
-        placeholder="Type your message..."
-      />
-      <button onClick={handleSendMessage} disabled={isLoading}>
-        {isLoading ? 'Sending...' : 'Send'}
-      </button>
+      {error && <p className="error-text">{error}</p>}
+      <div className="input-area">
+        <textarea
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="Type your message..."
+          disabled={isLoading}
+          rows={3}
+        />
+        <button onClick={handleSend} disabled={isLoading}>
+          {isLoading ? 'Sending...' : 'Send'}
+        </button>
+      </div>
     </div>
   );
 };
 
-export default ConversationTab;
+export default Conversation;
