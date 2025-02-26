@@ -187,16 +187,11 @@ Report bugs or suggest features via [Issues](https://github.com/your-username/EC
 
 ---
 
-## License
-
-This project is licensed under the [MIT License](LICENSE) - see the LICENSE file for details.
-
----
 
 ## Contact
 
 - **Author**: Pavan Sai (Jarvis)
-- **GitHub**: [your-username](https://github.com/your-username)
+- **GitHub**: https://github.com/Jarvis-stacks
 
 
 Happy coding with ECOBOT!
