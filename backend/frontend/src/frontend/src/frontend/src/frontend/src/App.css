@@ -1,0 +1,47 @@
+.tabs {
+  margin: 20px 0;
+}
+
+.tabs button {
+  padding: 10px 20px;
+  margin-right: 10px;
+  cursor: pointer;
+}
+
+.tabs button.active {
+  background-color: #007bff;
+  color: white;
+  border: none;
+}
+
+.conversation-tab {
+  max-width: 600px;
+  margin: 20px auto;
+}
+
+.chat-window {
+  border: 1px solid #ccc;
+  padding: 10px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.chat-window p.user {
+  text-align: right;
+  color: #007bff;
+}
+
+.chat-window p.assistant {
+  text-align: left;
+  color: #333;
+}
+
+.conversation-tab input {
+  width: 80%;
+  padding: 8px;
+  margin-right: 10px;
+}
+
+.conversation-tab button {
+  padding: 8px 16px;
+}
