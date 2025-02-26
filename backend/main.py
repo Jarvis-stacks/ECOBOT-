@@ -86,6 +86,70 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         raise credentials_exception
     return user
 
+# Store conversation history for multi-turn support
+conversation_history = []
+
+@app.post("/converse")
+def converse_with_ai(message: str):
+    """
+    API endpoint to handle multi-turn conversations with context.
+    
+    Args:
+        message (str): The user's message for this turn.
+    
+    Returns:
+        dict: A dictionary containing the AI's response.
+    """
+    # Append user's message to conversation history
+    conversation_history.append({"role": "user", "content": message})
+    
+    # Prepare input prompt with conversation history
+    input_text = "\n".join([f"{turn['role']}: {turn['content']}" for turn in conversation_history])
+    input_text += "\nassistant:"
+
+    # Configure Hugging Face API request with adjusted parameters for conversation
+    headers = {"Authorization": f"Bearer {HF_TOKEN}"}
+    payload = {
+        "inputs": input_text,
+        "parameters": {"max_length": 150, "temperature": 0.7, "top_p": 0.9}
+    }
+    try:
+        response = requests.post(
+            "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.3",
+            headers=headers,
+            json=payload
+        )
+        response.raise_for_status()
+        generated_text = response.json()[0]["generated_text"].strip()
+        # Extract the assistant's response
+        assistant_response = generated_text.split("assistant:")[-1].strip()
+        # Append assistant's response to conversation history
+        conversation_history.append({"role": "assistant", "content": assistant_response})
+        return {"response": assistant_response}
+    except (requests.RequestException, IndexError, KeyError):
+        return {"response": "I apologize, but I encountered an error while processing your message. Please try again."}
+
+# Update the existing /process endpoint with better error handling
+@app.get("/process")
+def process_query(query: str):
+    """
+    API endpoint to process a user query by fetching search results and generating ideas.
+    
+    Args:
+        query (str): The query string provided by the user.
+    
+    Returns:
+        dict: A dictionary containing the processed result.
+    """
+    search_results = get_search_results(query)
+    if not search_results:
+        return {"result": "No search results found for your query."}
+    
+    processed_result = process_with_hf(search_results, query)
+    if processed_result == "Failed to generate ideas due to an API error.":
+        return {"result": "Failed to generate ideas due to an API error. Please try again later."}
+    return {"result": processed_result}
+
 # Updated /converse endpoint with authentication
 @app.post("/converse")
 def converse_with_ai(message: str, current_user: dict = Depends(get_current_user)):
