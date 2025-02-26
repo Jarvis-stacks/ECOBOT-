@@ -44,3 +44,9 @@ The frontend sends the query to the backend, which fetches search results via Se
 Error Handling
 Backend: Returns "No search results found" or "Failed to generate ideas" if APIs fail.
 Frontend: Displays "Error processing query" if the API call fails.
+
+Notes for Future Enhancements
+Database Upgrade: Replace SQLite with PostgreSQL or MySQL for production use.
+Custom API: Uncomment and adapt the get_grok_response function for your own API.
+Rate Limiting: Add slowapi or similar to prevent abuse.
+Caching: Implement Redis caching for search and AI responses to improve performance.
